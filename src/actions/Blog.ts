@@ -4,26 +4,19 @@
 import { GetAllBlogPostsResponse } from "@/types/actions"
 import { ApiResponse } from "@/types/response"
 // LIBRARY
-import { prisma } from "@/lib/prisma"
 import { logger } from "@/lib/logger"
 // UTILS
 import { createResponse } from "@/utils/response"
+// DI CONTAINER
+import { container } from "@/infrastructure/di/container"
 
 
 export async function GetAllBlogPosts() : Promise<ApiResponse<GetAllBlogPostsResponse>> {
 
     try {
 
-        const blogPosts = await prisma.blogPost.findMany({
-            include: {
-                comments: true,
-                blogPostTags: {
-                    include: {
-                        tag: true
-                    }
-                }
-            }
-        })
+        const useCase = container.getAllBlogPostsUseCase()
+        const blogPosts = await useCase.execute()
 
         if(blogPosts.length === 0) {
 

@@ -2,17 +2,17 @@
 
 // LIBRARY
 import { logger } from "@/lib/logger"
-import { prisma } from "@/lib/prisma"
 // ACTIONS
 import { GetCommentsByIdProps, GetCommentsByIdResponse } from "@/types/actions"
 // TYPES
-import { CommentExt } from "@/types/projectExt"
 import { ApiResponse } from "@/types/response"
 // UTILS
 import { createResponse } from "@/utils/response"
 // ZOD
 import { GetCommentsByIdSchema, MakeCommentSchema } from "@/zod/actionsSchema"
 import { ZodError } from "zod"
+// DI CONTAINER
+import { container } from "@/infrastructure/di/container"
 
 export async function GetCommentsById(params: GetCommentsByIdProps) : Promise<ApiResponse<GetCommentsByIdResponse>> {
 
@@ -22,36 +22,8 @@ export async function GetCommentsById(params: GetCommentsByIdProps) : Promise<Ap
 
         const {blogId} = params
 
-        // BLOG POST VAR OLUP OLMADIĞI KONTROL EDİLMEDİ ÇÜNKÜ ÖYLE BİR BLOG YOK İSE
-        // ZATEN BURAYA ULAŞAMAZ.
-
-        const allComments = await prisma.comment.findMany({
-
-            where: { 
-                blogPostId: blogId 
-            },
-            include: {
-                user: true,
-                blogPost: true,
-            },
-            orderBy: { createdAt: "asc" }
-        })
-
-        // HİÇ YORUM YOKSA BİR ŞEY GÖSTERMEYE GEREK YOK
-
-        const buildTree = ( parentId: string | null ) : CommentExt[] => {
-
-            return allComments
-                .filter((c) => c.parentId === parentId)
-                .map((c) => ({
-
-                    ...c,
-                    parent: null,
-                    replies: buildTree(c.id)
-                }))
-        }
-
-        const tree = buildTree(null)
+        const useCase = container.getCommentsByBlogIdUseCase()
+        const tree = await useCase.execute(blogId)
 
         logger.info("GetCommentsById: SUCCESS: GetCommentsById")
         return createResponse(true, 200, {data: tree}, "SUCCESS: GetCommentsById")
@@ -90,39 +62,13 @@ export async function MakeComment(prevState: ApiResponse<null> | undefined, form
         logger.info("MakeComment: Form verileri alındı.", {values})
         await MakeCommentSchema.parseAsync(values)
 
-        // PARENT CHECK
-        if(values.parentId) {
-
-            // FIND PARENT
-            const parent = await prisma.comment.findUnique({
-
-                where: {
-                    id: values.parentId
-                },
-                include: {parent: true, user: true}
-            })
-
-
-            if(parent?.parentId) {
-
-                // SHOW TO USER
-                logger.error("ONLY ONE LEVEL REPLY SUPPORTING!")
-                return createResponse(false, 400, null, "ONLY ONE LEVEL REPLY SUPPORTING!")
-            }
-        }
-
-        const newComment = await prisma.comment.create({
-            data: {
-
-                blogPostId: values.blogId,
-                content: values.content!,
-                parentId: values.parentId || null,
-                userId: values.userId!,
-                avatar: values.avatar!
-            },
-            include: {
-                user: true
-            }
+        const useCase = container.createCommentUseCase()
+        const newComment = await useCase.execute({
+            blogPostId: values.blogId,
+            content: values.content!,
+            parentId: values.parentId || null,
+            userId: values.userId!,
+            avatar: values.avatar!
         })
 
         logger.info("MakeComment: New comment created successfully!", {newComment})
@@ -136,6 +82,11 @@ export async function MakeComment(prevState: ApiResponse<null> | undefined, form
             logger.error("MakeComment: INVALID FORM DATA!")
             // SHOW TO USER
             return createResponse(false, 400, null, firstError)
+        }
+
+        if (error instanceof Error) {
+            logger.error("MakeComment: Business rule violation", {message: error.message})
+            return createResponse(false, 400, null, error.message)
         }
 
         logger.error("MakeComment: FAIL", {error})

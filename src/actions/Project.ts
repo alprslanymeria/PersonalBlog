@@ -2,28 +2,20 @@
 
 // LIBRARY
 import { logger } from "@/lib/logger"
-import { prisma } from "@/lib/prisma"
 // TYPES
 import { GetProjectsAllResponse } from "@/types/actions"
 import { ApiResponse } from "@/types/response"
 // UTILS
 import { createResponse } from "@/utils/response"
+// DI CONTAINER
+import { container } from "@/infrastructure/di/container"
 
 export default async function GetProjectsAll() : Promise<ApiResponse<GetProjectsAllResponse>> {
 
     try {
         
-        const projects = await prisma.project.findMany({
-            include: {
-                ProjectImages: true,
-                ProjectLinks: true,
-                ProjectTechnologies: {
-                    include: {
-                        technology: true
-                    }
-                }
-            }
-        })
+        const useCase = container.getAllProjectsUseCase()
+        const projects = await useCase.execute()
 
         if(projects.length === 0) {
 

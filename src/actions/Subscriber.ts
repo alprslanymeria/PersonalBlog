@@ -2,7 +2,6 @@
 
 // LIBRARY
 import { logger } from "@/lib/logger"
-import {prisma} from "@/lib/prisma"
 // TYPES
 import { ApiResponse } from "@/types/response"
 // UTILS
@@ -10,6 +9,10 @@ import { createResponse } from "@/utils/response"
 // ZOD
 import { CreateSubscriberSchema } from "@/zod/actionsSchema"
 import { ZodError } from "zod"
+// DI CONTAINER
+import { container } from "@/infrastructure/di/container"
+import { PrismaSubscriberRepository } from "@/infrastructure/repositories/PrismaSubscriberRepository"
+import { prisma } from "@/lib/prisma"
 
 export default async function CreateSubscriber(prevState : ApiResponse<null> | undefined, formData : FormData) : Promise<ApiResponse<null>> {
 
@@ -23,27 +26,18 @@ export default async function CreateSubscriber(prevState : ApiResponse<null> | u
         logger.info("CreateSubscriber: Form verileri alındı.", {values})
         await CreateSubscriberSchema.parseAsync(values)
 
-        // IF USER EXIST
-        const isExist = await prisma.subscriber.findFirst({
-            where: {
-                email: values.email
-            }
-        })
+        // Check if email already exists (business rule)
+        const subscriberRepository = new PrismaSubscriberRepository(prisma)
+        const isExist = await subscriberRepository.findByEmail(values.email!)
 
         if(isExist) {
-
             logger.error("CreateSubscriber: USER HAS ALREADY SUBSCRIBED!")
-            // SHOW TO USER
             return createResponse(false, 409, null, "USER HAS ALREADY SUBSCRIBED!")
         }
-
-        // CREATE SUBSCRIBER
-        await prisma.subscriber.create({
-            data: {
-                email: values.email!,
-            }
-        })
-
+        
+        const useCase = container.createSubscriberUseCase()
+        await useCase.execute(values.email!)
+        
         logger.info("CreateSubscriber: New subscriber created successfully!")
         return createResponse(true, 201, null, "SUCCESS: CreateSubscriber")
         

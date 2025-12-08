@@ -1,7 +1,6 @@
 "use server"
 
 // LIBRARY
-import { prisma } from "@/lib/prisma"
 import { logger } from "@/lib/logger"
 // TYPES
 import { GetUniqueCategoryProps, GetUniqueCategoryResponse } from "@/types/actions"
@@ -11,6 +10,8 @@ import { createResponse } from "@/utils/response"
 // ZOD
 import { GetUniqueCategorySchema } from "@/zod/actionsSchema"
 import { ZodError } from "zod"
+// DI CONTAINER
+import { container } from "@/infrastructure/di/container"
 
 
 export async function GetUniqueCategory(params: GetUniqueCategoryProps) : Promise<ApiResponse<GetUniqueCategoryResponse>> {
@@ -21,15 +22,8 @@ export async function GetUniqueCategory(params: GetUniqueCategoryProps) : Promis
 
         const {category} = params
 
-        const uniqueCategory = await prisma.category.findFirst({
-
-            where: {
-                name: category
-            },
-            include: {
-                blogPosts: true
-            }
-        })
+        const useCase = container.getUniqueCategoryUseCase()
+        const uniqueCategory = await useCase.execute(category)
 
         // DO NOT SHOW TO USER
         if(!uniqueCategory) {

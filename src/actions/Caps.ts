@@ -1,19 +1,21 @@
 "use server"
 
 // LIBRARY
-import { prisma } from "@/lib/prisma"
 import { logger } from "@/lib/logger"
 // TYPES
 import { GetCapsAllResponse } from "@/types/actions"
 import { ApiResponse } from "@/types/response"
 // UTILS
 import { createResponse } from "@/utils/response"
+// DI CONTAINER
+import { container } from "@/infrastructure/di/container"
 
 export default async function GetCapsAll() : Promise<ApiResponse<GetCapsAllResponse>> {
 
     try {
 
-        const capsImages = await prisma.capsImage.findMany()
+        const useCase = container.getAllCapsImagesUseCase()
+        const capsImages = await useCase.execute()
 
         if(capsImages.length === 0) {
 
