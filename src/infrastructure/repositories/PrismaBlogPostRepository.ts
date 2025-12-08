@@ -47,7 +47,7 @@ export class PrismaBlogPostRepository implements IBlogPostRepository {
 
   async getRandom(limit: number): Promise<BlogPostWithRelations[]> {
     const count = await this.prisma.blogPost.count()
-    const skip = Math.max(0, Math.floor(Math.random() * count) - limit)
+    const skip = Math.max(0, Math.floor(Math.random() * (count - limit)))
     
     return await this.prisma.blogPost.findMany({
       take: limit,

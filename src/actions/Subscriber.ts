@@ -11,8 +11,6 @@ import { CreateSubscriberSchema } from "@/zod/actionsSchema"
 import { ZodError } from "zod"
 // DI CONTAINER
 import { container } from "@/infrastructure/di/container"
-import { PrismaSubscriberRepository } from "@/infrastructure/repositories/PrismaSubscriberRepository"
-import { prisma } from "@/lib/prisma"
 
 export default async function CreateSubscriber(prevState : ApiResponse<null> | undefined, formData : FormData) : Promise<ApiResponse<null>> {
 
@@ -26,15 +24,6 @@ export default async function CreateSubscriber(prevState : ApiResponse<null> | u
         logger.info("CreateSubscriber: Form verileri alındı.", {values})
         await CreateSubscriberSchema.parseAsync(values)
 
-        // Check if email already exists (business rule)
-        const subscriberRepository = new PrismaSubscriberRepository(prisma)
-        const isExist = await subscriberRepository.findByEmail(values.email!)
-
-        if(isExist) {
-            logger.error("CreateSubscriber: USER HAS ALREADY SUBSCRIBED!")
-            return createResponse(false, 409, null, "USER HAS ALREADY SUBSCRIBED!")
-        }
-        
         const useCase = container.createSubscriberUseCase()
         await useCase.execute(values.email!)
         
@@ -48,6 +37,11 @@ export default async function CreateSubscriber(prevState : ApiResponse<null> | u
             logger.error("CreateSubscriber: INVALID FORM DATA!")
             // SHOW TO USER
             return createResponse(false, 400, null, "INVALID FORM DATA")
+        }
+
+        if (error instanceof Error && error.message === "USER HAS ALREADY SUBSCRIBED!") {
+            logger.error("CreateSubscriber: USER HAS ALREADY SUBSCRIBED!")
+            return createResponse(false, 409, null, "USER HAS ALREADY SUBSCRIBED!")
         }
 
         logger.error("CreateSubscriber: FAIL", {error})
