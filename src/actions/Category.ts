@@ -1,55 +1,59 @@
 "use server"
 
+// LIBRARY
 import { prisma } from "@/lib/prisma"
-import { CategoryWithRelations } from "@/types/projectExt"
+import { logger } from "@/lib/logger"
+// TYPES
+import { GetUniqueCategoryProps, GetUniqueCategoryResponse } from "@/types/actions"
+import { ApiResponse } from "@/types/response"
+// UTILS
+import { createResponse } from "@/utils/response"
+// ZOD
+import { GetUniqueCategorySchema } from "@/zod/actionsSchema"
+import { ZodError } from "zod"
 
-export default async function GetCategoryAll(category : string) {
+
+export async function GetUniqueCategory(params: GetUniqueCategoryProps) : Promise<ApiResponse<GetUniqueCategoryResponse>> {
 
     try {
-        
-        const categories : CategoryWithRelations[] = await prisma.category.findMany({
-            include: {
-                blogPosts: {
-                    include: {
-                        blogPostTags: {
-                            include: {
-                                tag: true
-                            }
-                        }
-                    }
-                }
-            }
-        })
+
+        await GetUniqueCategorySchema.parseAsync(params)
+
+        const {category} = params
 
         const uniqueCategory = await prisma.category.findFirst({
+
             where: {
                 name: category
             },
-            include : {
-                blogPosts : {
-                    include : {
-                        blogPostTags : {
-                            include : {
-                                tag : true
-                            }
-                        }
-                    }
-                }
+            include: {
+                blogPosts: true
             }
         })
 
-        if(categories.length === 0) 
-        return {status: 404, message: "Kategoriler bulunamadı"}
+        // DO NOT SHOW TO USER
+        if(!uniqueCategory) {
 
-        const allBlogPosts = categories.flatMap(
-            
-            category => category.blogPosts.map(blog => ({...blog, category: category.name}))
-        )
-    
-        return {status: 200, categories: categories, allBlogPosts: allBlogPosts, uniqueBlogPosts: uniqueCategory?.blogPosts}
+            logger.error("GetUniqueCategory: Category not found!")
+            return createResponse<GetUniqueCategoryResponse>(false, 404, null, "GetUniqueCategory: Category not found!")
+        } 
 
-    } catch (error) {
+        logger.info("GetUniqueCategory: uniqueCategory info's fetched successfully!")
+        return createResponse(true, 200, {data: uniqueCategory}, "SUCCESS: GetUniqueCategory ")
         
-        if(error instanceof Error) return {status: 500, message: "BlogPosts getirilirken bir hata oluştu", details: error.message}
+    } catch (error) {
+
+        if (error instanceof ZodError) {
+                
+            const firstError = error.issues?.[0]?.message
+            logger.error("GetUniqueCategory: INVALID FORM DATA!", {firstError})
+            // SHOW TO USER
+            return createResponse<GetUniqueCategoryResponse>(false, 400, null, firstError)
+        }
+
+        logger.error("GetUniqueCategory: FAIL", {error})
+        return createResponse<GetUniqueCategoryResponse>(false, 500, null, "SERVER ERROR!")
+        
     }
+
 }

@@ -1,0 +1,6 @@
+Merhaba, ben İdris Alparslan, bilgisayar mühendisi ve tutkulu bir teknoloji meraklısıyım. Bu blogda, yazılım
+dünyasının derinliklerine inerek sizlerle bilgi ve deneyimlerimi paylaşmayı amaçlıyorum. Ancak, sadece teknoloji ve
+yazılım konularıyla sınırlı kalmak istemiyorum. Hayatın farklı alanlarına olan ilgim beni bu blogu daha geniş bir 
+yelpazede tutmaya yönlendirdi. İşte bu yüzden, burada sadece kod satırları arasında kaybolmayacak, aynı zamanda 
+kitapların büyülü dünyasına, felsefenin derin sorgulamalarına, izlediğim dizi ve filmlerin büyüleyici atmosferlerine 
+de dalacaksınız.

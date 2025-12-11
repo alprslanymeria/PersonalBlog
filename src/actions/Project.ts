@@ -1,8 +1,15 @@
 "use server"
 
+// LIBRARY
+import { logger } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
+// TYPES
+import { GetProjectsAllResponse } from "@/types/actions"
+import { ApiResponse } from "@/types/response"
+// UTILS
+import { createResponse } from "@/utils/response"
 
-export default async function GetProjectsAll() {
+export default async function GetProjectsAll() : Promise<ApiResponse<GetProjectsAllResponse>> {
 
     try {
         
@@ -18,14 +25,21 @@ export default async function GetProjectsAll() {
             }
         })
 
-        if(projects.length === 0) 
-        return {status: 404, message: "Projeler bulunamadı"}
+        if(projects.length === 0) {
 
-        return {status: 200, data: projects}
+            logger.warn("GetProjectsAll: Projects length is 0!")
+            // DONT SHOW THIS MESSAGE BUT ACTION FOR THIS ISSUE
+            return createResponse(true, 404, {data: []}, "NO PROJECTS TO SHOW!")
+        }
+
+        logger.info("GetProjectsAll: SUCCESS: GetProjectsAll")
+        return createResponse(true, 200, {data: projects}, "SUCCESS: GetProjectsAll")
+
 
     } catch (error) {
         
-        if(error instanceof Error) return {status: 500, message: "Projeler getirilirken bir hata oluştu", details: error.message}
-    }
+        logger.error("GetProjectsAll: FAIL", {error})
 
+        return createResponse<GetProjectsAllResponse>(false, 500, null, "SERVER ERROR!")
+    }
 }

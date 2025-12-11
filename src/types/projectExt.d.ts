@@ -1,48 +1,59 @@
 import { BlogPostTag, Category, Comment, Project, ProjectImage, ProjectLink, ProjectTechnology, Tag, Technology , BlogPost} from "@prisma/client"
+import { User } from "better-auth"
 
-type CategoryWithRelations = Category & {
-    blogPosts: BlogPostWithRelations[]
+// CATEGORY
+type CategoryExt = Category & {
+
+    blogPosts: BlogPost[]
 }
 
-type BlogPostWithRelations = BlogPost & {
-    category: String
-    comments: CommentWithRelations[]
-    blogPostTags: BlogPostTagWithRelations[]
+// BLOG POST
+type BlogPostExt = BlogPost & {
+
+    comments: Comment[]
+    blogPostTags: BlogPostTagExt[]
 }
 
-type CommentWithRelations = Comment & {
-    blogPost: BlogPostWithRelations
+// PROJECT
+type ProjectExt = Project & {
+
+    ProjectImages: ProjectImage[]
+    ProjectLinks: ProjectLink[]
+    ProjectTechnologies: ProjectTechnologyExt[]
 }
 
-type TagWithRelations = Tag & {
-    blogPostTags: BlogPostTagWithRelations[]
+// TECHNOLOGY
+type TechnologyExt = Technology & {
+    ProjectTechnologies: ProjectTechnology[]
 }
 
-type BlogPostTagWithRelations = BlogPostTag & {
-    blogPost: BlogPostWithRelations
-    tag: TagWithRelations
+// TAG
+type TagExt = Tag & {
+
+    blogPostTags: BlogPostTag[]
+}
+
+// COMMENT
+type CommentExt = Comment & {
+
+    user: User
+    blogPost: BlogPost
+    parent?: CommentExt | null
+    replies: CommentExt[]
+
 }
 
 
-type ProjectWithRelations = Project & {
-    ProjectImages: ProjectImageWithRelations[]
-    ProjectLinks: ProjectLinkWithRelations[]
-    ProjectTechnologies: ProjectTechnologyWithRelations[]
+
+
+// BRIDGE RELATIONS
+
+type ProjectTechnologyExt = ProjectTechnology & {
+
+    technology: Technology
 }
 
-type ProjectImageWithRelations = ProjectImage & {
-    project: ProjectWithRelations
-}
+type BlogPostTagExt = BlogPostTag & {
 
-type ProjectLinkWithRelations = ProjectLink & {
-    project: ProjectWithRelations
-}
-
-type TechnologyWithRelations = Technology & {
-    ProjectTechnologies: ProjectTechnologyWithRelations[]
-}
-
-type ProjectTechnologyWithRelations = ProjectTechnology & {
-    project: ProjectWithRelations
-    technology: TechnologyWithRelations
+    tag: Tag
 }
